@@ -1,0 +1,9 @@
+[general]
+nick = morse
+cookiefile = morse.cookie
+
+[rooms]
+# Format:
+# room
+# room=password
+test
