@@ -127,15 +127,22 @@ class Morse:
 			await room.send("Can't demorse nothing.", message.mid)
 			return
 
-		matches = re.findall(self.MORSE_RE, text)
-		matches = [match.strip() for match in matches if match.strip()]
+		whole = re.fullmatch(self.MORSE_RE, text.strip())
+		if whole:
+			translated = self.from_morse(whole.group(0))
+			await room.send(translated, message.mid)
+			return
 
-		if not matches:
+		matches = re.findall(self.MORSE_RE, text)
+		matches = [match for match in matches
+		           if match.strip(" /") not in {"", ".", "-", "..."}]
+
+		translated = [self.from_morse(match) for match in matches]
+
+		if not translated:
 			await room.send("No morse code found.", message.mid)
 			return
 
-		translated = [self.from_morse(match) for match in matches]
-		translated = [word for word in translated if len(word) > 1]
 		await room.send("\n".join(translated), message.mid)
 
 	@yaboli.command("morse")
