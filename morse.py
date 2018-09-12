@@ -7,8 +7,7 @@ import yaboli
 from yaboli.utils import *
 
 
-class Morse:
-	SHORT_DESCRIPTION = "convert to and from morse code"
+class Morse(yaboli.Module):
 	DESCRIPTION = (
 		"'morse' converts to and from morse code.\n"
 		"In morse code, letters should be separated by spaces and words"
@@ -24,6 +23,12 @@ class Morse:
 	)
 	AUTHOR = "Created by @Garmy using github.com/Garmelon/yaboli\n"
 	CREDITS = "Original bot by Leidenfrost.\n"
+
+	SHORT_DESCRIPTION = "convert to and from morse code"
+	SHORT_HELP =   "/me converts to and from morse code"
+
+	LONG_DESCRIPTION = DESCRIPTION + COMMANDS          + CREDITS
+	LONG_HELP        = DESCRIPTION + COMMANDS + AUTHOR + CREDITS
 
 	MORSE_RE = r"[\.\-\/ ]+"
 
@@ -80,6 +85,10 @@ class Morse:
 		"@": ".--.-.",
 	}
 	FROM_MORSE = {v: i for i, v in TO_MORSE.items()}
+
+	async def on_command_general(self, room, message, command, argstr):
+		await self.command_demorse(room, message, command, argstr)
+		await self.command_morse(room, message, command, argstr)
 
 	@classmethod
 	def from_morse(cls, text):
@@ -161,31 +170,6 @@ class Morse:
 		translated = [self.to_morse(line) for line in lines]
 		await room.send("\n".join(translated), message.mid)
 
-class MorseBot(yaboli.Bot):
-	SHORT_HELP = Morse.SHORT_DESCRIPTION
-	LONG_HELP = Morse.DESCRIPTION + Morse.COMMANDS + Morse.AUTHOR + Morse.CREDITS
-	PING_TEXT = ".--. --- -. --."
-
-	def __init__(self, nick, cookiefile=None):
-		super().__init__(nick, cookiefile=cookiefile)
-		self.morse = Morse()
-
-	async def on_command_specific(self, room, message, command, nick, argstr):
-		if similar(nick, room.session.nick) and not argstr:
-			await self.botrulez_ping(room, message, command, text=self.PING_TEXT)
-			await self.botrulez_help(room, message, command, text=self.LONG_HELP)
-			await self.botrulez_uptime(room, message, command)
-			await self.botrulez_kill(room, message, command)
-			await self.botrulez_restart(room, message, command)
-
-	async def on_command_general(self, room, message, command, argstr):
-		if not argstr:
-			await self.botrulez_ping(room, message, command, text=self.PING_TEXT)
-			await self.botrulez_help(room, message, command, text=self.SHORT_HELP)
-
-		await self.morse.command_demorse(room, message, command, argstr)
-		await self.morse.command_morse(room, message, command, argstr)
-
 def main(configfile):
 	logging.basicConfig(level=logging.INFO)
 
@@ -194,7 +178,9 @@ def main(configfile):
 
 	nick = config.get("general", "nick")
 	cookiefile = config.get("general", "cookiefile", fallback=None)
-	bot = MorseBot(nick, cookiefile=cookiefile)
+	module = Morse()
+
+	bot = yaboli.ModuleBot(module, nick, cookiefile=cookiefile)
 
 	for room, password in config.items("rooms"):
 		if not password:
